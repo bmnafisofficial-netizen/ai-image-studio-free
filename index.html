@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+<script>
+window.onerror=function(msg,src,line,col,err){window.parent.postMessage({type:'app-error',message:msg,source:src,lineno:line,colno:col,stack:err&&err.stack||''},'*');};
+window.onunhandledrejection=function(e){window.parent.postMessage({type:'app-error',message:'Unhandled promise rejection: '+(e.reason&&e.reason.message||e.reason||'unknown'),stack:e.reason&&e.reason.stack||''},'*');};
+window.addEventListener('error',function(e){var t=e&&e.target;if(t&&t!==window&&t.tagName==='SCRIPT'){var u=t.src||'';window.parent.postMessage({type:'app-error',message:'Failed to load script'+(u?': '+u:' (inline module)'),source:u},'*');}},true);
+(function(){var _f=window.fetch;window.fetch=function(){var a=arguments,u=typeof a[0]==='string'?a[0]:(a[0]&&a[0].url)||'';var p=_f.apply(this,a);p.then(function(r){if(r.status===500){r.clone().text().then(function(b){window.parent.postMessage({type:'fetch-error',url:u,status:500,body:b},'*');}).catch(function(){window.parent.postMessage({type:'fetch-error',url:u,status:500,body:''},'*');});}}).catch(function(e){window.parent.postMessage({type:'fetch-error',url:u,status:0,body:e.message||'fetch failed'},'*');});return p;};})();
+</script>
+<script src="https://builder.puter.com/runtime.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#7c3aed">
+<meta name="description" content="Turn your imagination into images with AI.">
+<title>AI Image Studio</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  .chip[aria-pressed="true"] { background:#7c3aed; border-color:#7c3aed; color:#fff; }
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .pulse { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.45; } }
+  ::-webkit-scrollbar { width:8px; height:8px } ::-webkit-scrollbar-thumb { background:#2a3245; border-radius:8px }
+</style>
+    <!-- puter-pwa: generated, do not edit -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AI">
+    <!-- /puter-pwa -->
+</head>
+<body class="h-full bg-[#0b0f19] text-slate-100">
+<div class="min-h-full flex flex-col">
+  <!-- Top bar -->
+  <header class="h-14 border-b border-white/5 flex items-center justify-between px-4 sm:px-6 sticky top-0 bg-[#0b0f19]/95 backdrop-blur z-10">
+    <div class="flex items-center gap-2.5">
+      <img src="icon.svg" class="w-7 h-7" alt="">
+      <span class="font-semibold tracking-tight">Image Studio</span>
+    </div>
+    <div class="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-full h-7 px-3">
+      <i data-lucide="unlock" class="w-3.5 h-3.5"></i><span>Free · no sign-in needed</span>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full max-w-6xl mx-auto grid lg:grid-cols-[380px_1fr] gap-6 p-4 sm:p-6">
+    <!-- Controls -->
+    <section class="space-y-5">
+      <div>
+        <h1 class="text-xl font-semibold tracking-tight">Create an image</h1>
+        <p class="text-sm text-slate-400 mt-1">Turn your imagination into images.</p>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label for="ai-prompt" class="text-sm font-medium text-slate-300">Prompt</label>
+          <button id="surprise" class="text-xs text-violet-300 hover:text-violet-200 flex items-center gap-1"><i data-lucide="shuffle" class="w-3.5 h-3.5"></i>Surprise me</button>
+        </div>
+        <div class="rounded-xl border border-white/10 bg-[#121827] focus-within:border-violet-500 transition">
+          <textarea id="ai-prompt" rows="5" maxlength="1000" placeholder="A beautiful village in Bangladesh at sunset, cinematic lighting..." class="w-full bg-transparent resize-none p-3.5 text-[15px] outline-none placeholder:text-slate-500"></textarea>
+          <div class="flex items-center justify-between px-3 pb-2.5 text-xs text-slate-500">
+            <span id="char-count">0 / 1000</span>
+            <button id="clear-prompt" class="hover:text-slate-300">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-sm font-medium text-slate-300 mb-2">Style</p>
+        <div id="styles" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <button id="ai-generate" class="w-full h-12 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-60 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 transition">
+        <i data-lucide="sparkles" class="w-4 h-4"></i><span>Generate image</span>
+      </button>
+      <p class="hidden sm:block text-xs text-slate-500 text-center -mt-2">Press Ctrl + Enter to generate</p>
+      <p id="ai-status" role="status" class="text-sm text-center text-slate-400 min-h-[1.25rem]"></p>
+    </section>
+
+    <!-- Canvas + history -->
+    <section class="space-y-5 min-w-0">
+      <div id="stage" class="relative aspect-square sm:aspect-[4/3] rounded-2xl border border-white/10 bg-[#121827] overflow-hidden flex items-center justify-center">
+        <div id="empty" class="text-center px-6">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-white/5 flex items-center justify-center mb-3"><i data-lucide="image" class="w-6 h-6 text-slate-400"></i></div>
+          <p class="font-medium">Your image will appear here</p>
+          <p class="text-sm text-slate-500 mt-1">Describe a scene and pick a style to get started.</p>
+        </div>
+        <div id="loading" class="hidden absolute inset-0 bg-[#121827] flex-col items-center justify-center gap-3">
+          <i data-lucide="loader-2" class="w-8 h-8 text-violet-400 spin"></i>
+          <p class="text-sm text-slate-400 pulse">Painting your image…</p>
+          <p class="text-xs text-slate-500">Free service — can take 10–60 seconds</p>
+        </div>
+        <div id="ai-result" class="hidden absolute inset-0 flex items-center justify-center bg-black/30"></div>
+      </div>
+
+      <div id="actions" class="hidden flex-wrap gap-2">
+        <button id="ai-download" class="h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm font-medium flex items-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Download</button>
+        <button id="regen" class="h-10 px-4 rounded-lg border border-white/10 hover:bg-white/5 text-sm flex items-center gap-2"><i data-lucide="refresh-cw" class="w-4 h-4"></i>Regenerate</button>
+        <button id="reuse" class="h-10 px-4 rounded-lg border border-white/10 hover:bg-white/5 text-sm flex items-center gap-2"><i data-lucide="pencil" class="w-4 h-4"></i>Edit prompt</button>
+        <button id="open" class="h-10 px-4 rounded-lg border border-white/10 hover:bg-white/5 text-sm flex items-center gap-2"><i data-lucide="maximize-2" class="w-4 h-4"></i>Full size</button>
+      </div>
+      <p id="current-prompt" class="text-sm text-slate-400 line-clamp-2"></p>
+
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-medium text-slate-300">Recent creations</h2>
+          <button id="clear-history" class="hidden text-xs text-slate-500 hover:text-slate-300">Clear</button>
+        </div>
+        <div id="history" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2"></div>
+        <p id="history-empty" class="text-sm text-slate-500">Images you generate this session will show up here.</p>
+      </div>
+      <p class="text-xs text-slate-600 pt-2">Images are generated by the free public <a href="https://pollinations.ai" target="_blank" rel="noopener" class="underline hover:text-slate-400">Pollinations.ai</a> service. Prompts are sent to that service.</p>
+    </section>
+  </main>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" class="hidden fixed inset-0 z-50 bg-black/90 items-center justify-center p-4">
+  <button id="lb-close" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"><i data-lucide="x" class="w-5 h-5"></i></button>
+  <img id="lb-img" class="max-w-full max-h-full rounded-lg" alt="">
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
